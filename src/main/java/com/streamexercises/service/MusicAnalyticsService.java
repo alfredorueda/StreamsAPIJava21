@@ -12,18 +12,37 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Service class containing 15 advanced exercises for mastering Java 21 Streams API,
- * lambda expressions, and method references.
+ * MusicAnalyticsService provides advanced data analysis capabilities for a music streaming platform.
+ * This service offers analytical functions to better understand user behavior, music trends,
+ * and generate personalized recommendations - similar to how Spotify or Apple Music would
+ * analyze user data to enhance the listening experience.
+ * 
+ * The class contains 15 exercises showcasing Java 21 Stream API, lambda expressions,
+ * method references, and other modern Java features in practical music domain contexts.
  */
 public class MusicAnalyticsService {
 
     /**
-     * Exercise 1: Group songs by genre and find the average popularity for each genre.
+     * Exercise 1: Calculate average popularity ratings for each music genre.
      * 
-     * Uses:
-     * - collect with groupingBy
-     * - averaging downstream collector
-     * - method references
+     * Business Context:
+     * This analysis helps the music platform understand which genres are generally rated 
+     * higher by users. This data can drive content acquisition decisions, marketing campaigns,
+     * or homepage featuring strategies. For example, if Electronic music has high average
+     * popularity, the platform might feature more electronic artists in "New Releases" sections.
+     * 
+     * Functionality:
+     * - Takes a list of songs from the catalog
+     * - Groups them by primary genre
+     * - Calculates the average popularity rating (0-100 scale) for each genre
+     * - Returns a map of genres to their average popularity scores
+     * 
+     * Example:
+     * Input: List of songs including Rock songs (avg 75/100) and Pop songs (avg 85/100)
+     * Output: {ROCK=75.0, POP=85.0}
+     * 
+     * Technical Implementation:
+     * Uses Stream API's collect operation with groupingBy and averagingDouble collectors
      */
     public Map<Genre, Double> getAveragePopularityByGenre(List<Song> songs) {
         return songs.stream()
@@ -34,13 +53,26 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 2: Find the most popular song for each genre.
+     * Exercise 2: Find the most popular song in each music genre.
      * 
-     * Uses:
-     * - collect with groupingBy
-     * - maxBy downstream collector
-     * - comparing
-     * - Optional handling
+     * Business Context:
+     * This analysis helps identify "hit songs" in each genre for creating genre-based
+     * "Top Hits" playlists or recommending representative songs to new users based on 
+     * their preferred genres. It enables the platform to showcase the best examples of 
+     * each genre when users explore music categories.
+     * 
+     * Functionality:
+     * - Takes a list of songs from the catalog
+     * - Groups them by primary genre
+     * - Finds the song with the highest popularity rating in each genre
+     * - Returns a map of genres to their most popular songs
+     * 
+     * Example:
+     * Input: "Bohemian Rhapsody" (Rock, 98.5), "Stairway to Heaven" (Rock, 97.2)
+     * Output: {ROCK=Optional[Bohemian Rhapsody]}
+     * 
+     * Technical Implementation:
+     * Uses Stream API's collect operation with groupingBy and maxBy collectors
      */
     public Map<Genre, Optional<Song>> getMostPopularSongByGenre(List<Song> songs) {
         return songs.stream()
@@ -51,13 +83,26 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 3: Calculate total duration of a user's playlists.
+     * Exercise 3: Calculate the total playing time of all songs in a user's playlists.
      * 
-     * Uses:
-     * - flatMap
-     * - map
-     * - reduce with identity
-     * - method references
+     * Business Context:
+     * This feature helps users understand their total listening time commitment across 
+     * all their playlists. It's useful for listeners planning activities (e.g., "I need 
+     * a 30-minute workout mix") or for platform analytics (e.g., analyzing average playlist 
+     * durations to optimize offline playback features).
+     * 
+     * Functionality:
+     * - Takes a list of user playlists
+     * - Extracts all songs from all playlists
+     * - Calculates the sum of all song durations
+     * - Returns the total playback time as a Duration object
+     * 
+     * Example:
+     * Input: "Workout" playlist (3 songs, 12 mins total), "Relaxing" playlist (5 songs, 25 mins total)
+     * Output: Duration of 37 minutes
+     * 
+     * Technical Implementation:
+     * Uses flatMap to process all songs across playlists and reduce to combine durations
      */
     public Duration calculateTotalPlaylistsDuration(List<Playlist> playlists) {
         return playlists.stream()
@@ -67,13 +112,25 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 4: Find users with overlapping favorite genres.
+     * Exercise 4: Find users who share musical taste based on genre preferences.
      * 
-     * Uses:
-     * - nested streams
-     * - filter with complex predicate
-     * - anyMatch
-     * - collect to Map with function results
+     * Business Context:
+     * This social discovery feature helps users connect with others who have similar 
+     * music tastes. It enables "Listeners like you also follow..." recommendations, 
+     * community building, and collaborative playlist creation between users with 
+     * overlapping music interests.
+     * 
+     * Functionality:
+     * - Takes a list of platform users
+     * - For each user, finds other users who share at least one favorite genre
+     * - Returns a map linking each username to a list of other usernames with overlapping tastes
+     * 
+     * Example:
+     * Input: "rockfan" (likes ROCK, METAL), "popgirl" (likes POP, RNB), "diverse_listener" (likes ROCK, JAZZ)
+     * Output: {"rockfan": ["diverse_listener"], "diverse_listener": ["rockfan"], "popgirl": []}
+     * 
+     * Technical Implementation:
+     * Uses nested streams with filtering and complex predicate conditions
      */
     public Map<String, List<String>> findUsersWithOverlappingGenres(List<User> users) {
         return users.stream()
@@ -89,14 +146,25 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 5: Extract top N songs by play count.
+     * Exercise 5: Generate a ranked list of the most played songs across the platform.
      * 
-     * Uses:
-     * - sorted
-     * - limit
-     * - Comparator.comparingInt
-     * - method references
-     * - reversed() for descending order
+     * Business Context:
+     * This analysis powers "Top Charts" features, helping users discover trending content 
+     * and allowing the platform to track viral hits. It helps music marketers identify 
+     * songs that resonate with listeners and is essential for building "Most Popular" 
+     * sections in the app.
+     * 
+     * Functionality:
+     * - Takes a list of songs and a number N
+     * - Sorts songs by their play count in descending order
+     * - Returns the top N most-played songs
+     * 
+     * Example:
+     * Input: (Songs list, N=3) with "Shape of You" (2.5M plays), "Blinding Lights" (2.2M), "Dance Monkey" (2.1M), "Bad Guy" (1.8M)
+     * Output: ["Shape of You", "Blinding Lights", "Dance Monkey"]
+     * 
+     * Technical Implementation:
+     * Uses sorting operations with Comparator, limit, and reversed ordering
      */
     public List<Song> getTopNSongsByPlayCount(List<Song> songs, int n) {
         return songs.stream()
@@ -106,13 +174,28 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 6: Filter albums by complex conditions.
+     * Exercise 6: Find albums matching multiple complex criteria for content curation.
      * 
-     * Uses:
-     * - filter with complex predicate
-     * - combining multiple conditions
-     * - method references
-     * - stream operations on album songs
+     * Business Context:
+     * This multi-criteria filtering enables content curators to create specialized 
+     * collections like "Recent High-Rated Rock Albums" or "Acclaimed Jazz Releases 
+     * from 2020 Onward". It's used to power discovery features, editorial playlists, 
+     * and to highlight specific parts of the catalog to target audiences.
+     * 
+     * Functionality:
+     * - Takes a list of albums and filtering criteria (year cutoff, min popularity, genre)
+     * - Filters albums that:
+     *   1. Were released after the specified year
+     *   2. Have an average popularity rating above the minimum threshold
+     *   3. Either belong to the specified genre or contain at least one song in that genre
+     * - Returns a list of albums matching all criteria
+     * 
+     * Example:
+     * Input: (Albums, year=2018, minRating=80, genre=POP)
+     * Output: ["Fine Line" (Pop, 2019, avg rating 85), "Future Nostalgia" (Pop, 2020, avg rating 92)]
+     * 
+     * Technical Implementation:
+     * Uses multiple filter operations with complex predicates and logical combinations
      */
     public List<Album> findAlbumsByComplexCriteria(List<Album> albums, Year yearAfter, double minAvgPopularity, Genre genre) {
         return albums.stream()
@@ -125,13 +208,29 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 7: Map albums to DTOs with calculated fields.
+     * Exercise 7: Generate rich album summaries for the platform's user interface.
      * 
-     * Uses:
-     * - map
-     * - creating new objects in the pipeline
-     * - complex attribute calculations using streams
-     * - Collectors.joining
+     * Business Context:
+     * This transformation creates comprehensive album summary cards for display in the 
+     * app's UI, search results, and recommendations. It consolidates key album information 
+     * and statistics into a single object, ready for frontend display - similar to album 
+     * detail pages on music streaming services.
+     * 
+     * Functionality:
+     * - Takes a list of albums
+     * - For each album:
+     *   1. Extracts basic metadata (title, artist, year)
+     *   2. Calculates statistics (number of songs, total play count)
+     *   3. Generates derived data (comma-separated song list, most popular track)
+     * - Returns DTOs containing both the raw and calculated data
+     * 
+     * Example:
+     * Input: Album "Thriller" (Michael Jackson, 1982, 9 songs)
+     * Output: AlbumSummaryDTO with title="Thriller", artist="Michael Jackson", year=1982, 
+     *         songs=9, popularSong="Billie Jean", etc.
+     * 
+     * Technical Implementation:
+     * Uses map transformations with complex object construction and nested stream operations
      */
     public List<AlbumSummaryDTO> createAlbumSummaries(List<Album> albums) {
         return albums.stream()
@@ -151,12 +250,30 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 8: Advanced user statistics combining multiple data sources.
+     * Exercise 8: Generate detailed user profile statistics for personalization.
      * 
-     * Uses:
-     * - Stream pipeline with multiple intermediate operations
-     * - Custom collectors
-     * - Complex data aggregation
+     * Business Context:
+     * This analysis creates comprehensive user profiles to power personalization features.
+     * It's similar to Spotify's "Wrapped" year-end summaries but can be generated at any time.
+     * These profiles help understand user preferences for better recommendations and
+     * help users discover patterns in their own listening habits.
+     * 
+     * Functionality:
+     * - Takes lists of users, songs, and playlists
+     * - For each user:
+     *   1. Finds their top 5 most-played songs
+     *   2. Counts how many playlists they've created
+     *   3. Identifies their most-played music genres
+     *   4. Aggregates listening statistics
+     * - Returns detailed user statistics DTOs
+     * 
+     * Example:
+     * Input: User "rockfan" with multiple rock song plays and 3 playlists
+     * Output: UserStatisticsDTO with username="rockfan", top songs=["Bohemian Rhapsody", ...], 
+     *         favourite genres=[ROCK, METAL], playlist count=3
+     * 
+     * Technical Implementation:
+     * Uses complex stream pipelines with multi-source data aggregation and transformation
      */
     public Map<String, UserStatisticsDTO> generateUserStatistics(
             List<User> users, 
@@ -199,13 +316,31 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 9: Partition users by subscription type with play statistics.
+     * Exercise 9: Generate listening statistics comparing premium and free user behavior.
      * 
-     * Uses:
-     * - partitioningBy
-     * - Collectors.mapping as a downstream collector
-     * - Collectors.summarizingInt
-     * - Processing statistics objects
+     * Business Context:
+     * This analysis helps business teams understand differences in engagement between 
+     * premium and free users. It provides data for subscription strategy, informs 
+     * conversion tactics, and helps evaluate the success of premium features. Product 
+     * teams use this data to identify which features drive premium engagement.
+     * 
+     * Functionality:
+     * - Takes a list of platform users
+     * - Divides users into two groups: premium subscribers and free users
+     * - For each group, calculates statistical summaries of listening activity:
+     *   * Count of users in each group
+     *   * Average play count per user
+     *   * Minimum and maximum play counts
+     *   * Total play count for each group
+     * - Returns statistical summaries for both user groups
+     * 
+     * Example:
+     * Input: 5 users (2 premium, 3 free) with various play counts
+     * Output: {true=IntSummaryStatistics{count=2, sum=300, min=100, avg=150.0, max=200}, 
+     *          false=IntSummaryStatistics{count=3, sum=150, min=20, avg=50.0, max=80}}
+     * 
+     * Technical Implementation:
+     * Uses partitioningBy collector with summarizingInt downstream collector
      */
     public Map<Boolean, IntSummaryStatistics> getPlayStatisticsByPremiumStatus(List<User> users) {
         return users.stream()
@@ -216,13 +351,29 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 10: Advanced playlist recommendations based on user listening habits.
+     * Exercise 10: Generate personalized song recommendations based on user preferences.
      * 
-     * Uses:
-     * - flatMap
-     * - Complex collector chains
-     * - Weighted score calculations
-     * - Custom sorting criteria
+     * Business Context:
+     * This is the core recommendation algorithm that powers "Recommended for You" sections.
+     * It analyzes user behavior, tastes, and explicit preferences to suggest new content
+     * they might enjoy but haven't discovered yet. This feature drives approximately 30% of 
+     * all streams on major music platforms and is critical for user engagement and retention.
+     * 
+     * Functionality:
+     * - Takes a user profile, available songs, and album catalog
+     * - Creates a personalized recommendation score for each unplayed song based on:
+     *   1. Match with user's favorite genres (primary and secondary)
+     *   2. Song popularity in the wider user base
+     *   3. Match with user's favorite artists
+     * - Filters out songs the user has already played
+     * - Returns the top 10 highest-scoring songs as recommendations
+     * 
+     * Example:
+     * Input: User who likes Rock and Metal, favors Queen, hasn't heard "Stairway to Heaven"
+     * Output: List including "Stairway to Heaven" and other rock/metal songs the user hasn't played
+     * 
+     * Technical Implementation:
+     * Uses complex scoring algorithm with filter, map, sort operations and multi-criteria evaluation
      */
     public List<Song> getPersonalizedRecommendations(User user, List<Song> allSongs, List<Album> allAlbums) {
         // Extract user's favorite genres
@@ -265,13 +416,28 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 11: Analyze song distribution by decade and genre.
+     * Exercise 11: Analyze music catalog distribution by decade and genre.
      * 
-     * Uses:
-     * - Map transformation with custom keys
-     * - Complex multi-level grouping
-     * - Custom record for return type
-     * - Method references and constructor references
+     * Business Context:
+     * This analysis gives content strategists a comprehensive view of catalog distribution.
+     * It helps identify gaps in the music library (e.g., "we need more 90s Jazz") and
+     * informs licensing decisions. It's also useful for creating decade-based features like
+     * "80s Rock Classics" or "Discover the 70s" thematic experiences.
+     * 
+     * Functionality:
+     * - Takes a list of songs in the catalog
+     * - Groups songs first by decade of release (1970s, 1980s, etc.)
+     * - Within each decade, further groups songs by their primary genre
+     * - For each group, creates simplified song summaries with key information
+     * - Returns a nested map organizing the entire catalog by decade and genre
+     * 
+     * Example:
+     * Input: Songs from various decades and genres
+     * Output: {"1980s": {ROCK: [SongSummary("Sweet Child O' Mine",...), ...], POP: [...]}}, 
+     *          "1990s": {ALTERNATIVE: [...], HIPHOP: [...]}}
+     * 
+     * Technical Implementation:
+     * Uses multi-level groupingBy collectors with downstream mapping and custom record types
      */
     public Map<Decade, Map<Genre, List<SongSummary>>> analyzeLibraryByDecadeAndGenre(List<Song> songs) {
         return songs.stream()
@@ -293,13 +459,28 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 12: Find collaboration patterns between artists.
+     * Exercise 12: Discover artist collaboration networks within the music catalog.
      * 
-     * Uses:
-     * - flatMap with complex transformation
-     * - Collectors.teeing for parallel aggregation
-     * - Custom data structure handling
-     * - Functional composition
+     * Business Context:
+     * This analysis maps the artistic collaboration network in the music industry. It powers
+     * features like "Artists often featured together" and "Collaborative discography." 
+     * It helps users discover new artists through their connections to familiar ones and enables
+     * the platform to identify key industry connectors or suggest potential new collaborations.
+     * 
+     * Functionality:
+     * - Takes a list of songs in the catalog
+     * - Identifies songs with multiple artists (collaborations)
+     * - For each unique pair of collaborating artists, lists the songs they worked on together
+     * - Returns a map where each key is a unique artist pair and the value is their joint songs
+     * 
+     * Example:
+     * Input: Songs including "Don't Call Me Angel" (Ariana Grande, Miley Cyrus, Lana Del Rey)
+     * Output: {ArtistPair("Ariana Grande", "Miley Cyrus"): ["Don't Call Me Angel"], 
+     *          ArtistPair("Ariana Grande", "Lana Del Rey"): ["Don't Call Me Angel"],
+     *          ArtistPair("Miley Cyrus", "Lana Del Rey"): ["Don't Call Me Angel"]}
+     * 
+     * Technical Implementation:
+     * Uses flatMap transformation with combinatorial generation and complex grouping
      */
     public Map<ArtistPair, List<Song>> findArtistCollaborations(List<Song> songs) {
         return songs.stream()
@@ -322,13 +503,30 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 13: Create personalized genre affinity scores for users.
+     * Exercise 13: Calculate users' affinity scores for different music genres.
      * 
-     * Uses:
-     * - Complex weighted calculations
-     * - Collectors.toMap with merging function
-     * - Multi-step transformations
-     * - Optional handling and defaults
+     * Business Context:
+     * This analysis quantifies each user's affinity for different music genres based on
+     * their listening patterns, explicit preferences, and playlist curation behavior.
+     * These scores power personalized genre exploration features, targeted new release 
+     * notifications ("New Rock releases for you"), and help optimize the user's homepage
+     * with content from their high-affinity genres.
+     * 
+     * Functionality:
+     * - Takes lists of users, songs, and playlists
+     * - For each user, calculates a 0-100 affinity score for each music genre based on:
+     *   1. Direct song plays (primary genre gets full weight, secondary genres half weight)
+     *   2. Explicitly marked favorite genres (significant boost)
+     *   3. Genres represented in user-created playlists
+     * - Normalizes scores to a 0-100 scale for consistency
+     * - Returns a map of users to their genre affinity scores
+     * 
+     * Example:
+     * Input: User "rockfan" who mostly plays Rock songs but has some Pop and has Rock as favorite
+     * Output: {User("rockfan"): {ROCK: 100.0, POP: 35.0, ELECTRONIC: 12.0, ...}}
+     * 
+     * Technical Implementation:
+     * Uses complex multi-source data processing with weighted calculations and custom collectors
      */
     public Map<User, Map<Genre, Double>> calculateGenreAffinityScores(
             List<User> users, 
@@ -406,13 +604,35 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 14: Create dynamic playlist generator with advanced filtering.
+     * Exercise 14: Generate smart playlists tailored to specific activities and moods.
      * 
-     * Uses:
-     * - Stream pipeline conditionals
-     * - Function composition
-     * - Predicate factories and combinators
-     * - Complex sorting with multiple criteria
+     * Business Context:
+     * This feature creates activity-specific playlists like "Workout Mix," "Focus Time," or 
+     * "Roadtrip Playlist" with precise duration control and content filtering. Unlike simple
+     * genre-based playlists, these adapt to user preferences, limit repetition, and balance
+     * familiar tracks with discovery - similar to Spotify's Daily Mixes or Apple Music's stations.
+     * 
+     * Functionality:
+     * - Takes a list of available songs and playlist parameters:
+     *   1. Preferred genres and artists
+     *   2. Year range for song selection
+     *   3. Target duration (e.g., 30-minute workout)
+     *   4. Variety factor (1-10) controlling selection diversity
+     * - Applies complex filtering based on user preferences
+     * - Adapts sorting strategy based on the variety factor:
+     *   * Low variety: strict genre match, highest popularity first
+     *   * Medium variety: balances popularity with recency and some genre flexibility
+     *   * High variety: includes more genre exploration and incorporates randomness
+     * - Builds a playlist of appropriate duration
+     * - Returns a list of songs that matches all criteria
+     * 
+     * Example:
+     * Input: (songs, genres=[POP, ELECTRONIC], artists=["The Weeknd"], years=2010-2023, duration=45min, variety=5)
+     * Output: A playlist with ~45 minutes of medium-variety pop and electronic music, favoring but not
+     *         limited to The Weeknd, all from 2010-2023
+     * 
+     * Technical Implementation:
+     * Uses predicate combinations, conditional pipeline construction, and dynamic sorting strategies
      */
     public List<Song> generateDynamicPlaylist(
             List<Song> availableSongs,
@@ -454,7 +674,7 @@ public class MusicAnalyticsService {
         Comparator<Song> comparator;
         if (varietyFactor <= 3) {
             // Low variety: strict match on preferred genres and popularity
-            comparator = Comparator.comparing( (Song song) -> preferredGenres.contains(song.getPrimaryGenre()) ? 0 : 1)
+            comparator = Comparator.comparing((Song song) -> preferredGenres.contains(song.getPrimaryGenre()) ? 0 : 1)
                         .thenComparing(Comparator.comparing(Song::getPopularity).reversed());
         } else if (varietyFactor <= 7) {
             // Medium variety: balance genre match with popularity and recency
@@ -488,13 +708,28 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * Exercise 15: Analyze listening patterns and create track transition probabilities.
+     * Exercise 15: Analyze track transition patterns to improve shuffle and radio algorithms.
      * 
-     * Uses:
-     * - Sequential stream processing with state
-     * - Complex statistical analysis
-     * - Custom collector implementation
-     * - Multi-level data transformation
+     * Business Context:
+     * This analysis studies how users naturally sequence music to create more human-like
+     * automatic playback. Unlike truly random shuffles, this powers "smart shuffle" features
+     * that feel more intentional. It improves radio stations' song sequencing by learning
+     * which songs flow well after others - similar to how DJs craft seamless sets.
+     * 
+     * Functionality:
+     * - Takes user listening histories and a song lookup map
+     * - Analyzes the sequential order of songs in users' listening sessions
+     * - For each song, calculates the probability distribution of what songs typically follow it
+     * - Returns a transition probability matrix that maps:
+     *   Song A → {Song B: 30% likelihood, Song C: 45% likelihood, Song D: 25% likelihood}
+     * 
+     * Example:
+     * Input: User histories showing "Sweet Child O' Mine" is followed by "Paradise City" 8 times
+     *        and by "November Rain" 2 times
+     * Output: {"Sweet Child O' Mine" → {"Paradise City": 0.8, "November Rain": 0.2}}
+     * 
+     * Technical Implementation:
+     * Uses sequential stream processing with state tracking and probability calculation
      */
     public Map<Song, Map<Song, Double>> analyzeTrackTransitionProbabilities(List<User> users, Map<String, Song> songLookup) {
         // First, collect all user listening sequences
@@ -557,8 +792,11 @@ public class MusicAnalyticsService {
                 ));
     }
 
+    // Support records and classes for the exercises
+    
     /**
-     * Record representing a decade for grouping songs
+     * Record representing a decade for grouping songs.
+     * Automatically normalizes years to decade boundaries (e.g., 1987 → 1980s).
      */
     public record Decade(int startYear) {
         public Decade {
@@ -573,7 +811,9 @@ public class MusicAnalyticsService {
     }
     
     /**
-     * Record representing a pair of collaborating artists
+     * Record representing a pair of collaborating artists.
+     * Ensures consistent ordering for proper equals/hashCode behavior
+     * regardless of the order artists are provided.
      */
     public record ArtistPair(String artist1, String artist2) {
         public ArtistPair {
@@ -587,12 +827,14 @@ public class MusicAnalyticsService {
     }
     
     /**
-     * Record representing a summary of song information
+     * Record representing a summary of song information,
+     * used for simplified presentations in UI components.
      */
     public record SongSummary(String title, String artists, double popularity, int playCount) {}
 
     /**
-     * DTO for Album summary information
+     * DTO for Album summary information displayed in the user interface.
+     * Combines raw album data with calculated statistics.
      */
     public static class AlbumSummaryDTO {
         private final String title;
@@ -637,7 +879,8 @@ public class MusicAnalyticsService {
     }
 
     /**
-     * DTO for User statistics
+     * DTO for User statistics used in profile displays and analytics.
+     * Aggregates data from multiple sources to create a comprehensive user profile.
      */
     public static class UserStatisticsDTO {
         private final String username;
