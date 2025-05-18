@@ -16,6 +16,7 @@ public class User {
     private final Set<Album> favoriteAlbums;
     private final String country;
     private boolean isPremium;
+    private List<String> listeningHistory; // Ordered list of song IDs representing listening sequence
 
     public User(String username, String email, LocalDate joinDate, Set<Genre> favoriteGenres, 
                 String country, boolean isPremium) {
@@ -28,6 +29,21 @@ public class User {
         this.favoriteAlbums = new HashSet<>();
         this.country = country;
         this.isPremium = isPremium;
+        this.listeningHistory = new ArrayList<>();
+    }
+
+    // Constructor overload for simpler test cases (used in tests)
+    public User(String id, String username, boolean isPremium) {
+        this.id = id;
+        this.username = username;
+        this.email = username + "@example.com";
+        this.joinDate = LocalDate.now();
+        this.favoriteGenres = new HashSet<>();
+        this.songPlayCounts = new HashMap<>();
+        this.favoriteAlbums = new HashSet<>();
+        this.country = "Unknown";
+        this.isPremium = isPremium;
+        this.listeningHistory = new ArrayList<>();
     }
 
     // Getters
@@ -71,6 +87,15 @@ public class User {
         isPremium = premium;
     }
 
+    public List<String> getListeningHistory() {
+        return Collections.unmodifiableList(listeningHistory);
+    }
+
+    public void setListeningHistory(List<String> listeningHistory) {
+        this.listeningHistory = listeningHistory != null ? 
+            new ArrayList<>(listeningHistory) : new ArrayList<>();
+    }
+
     // Methods
     public void addFavoriteGenre(Genre genre) {
         if (genre != null) {
@@ -112,6 +137,25 @@ public class User {
         return songPlayCounts.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey);
+    }
+
+    public void recordSongListen(String songId) {
+        if (songId != null && !songId.isBlank()) {
+            listeningHistory.add(songId);
+            playSong(songId); // Also increment play count
+        }
+    }
+
+    public void updateTotalPlayCount() {
+        // Method used to recalculate play count totals after bulk operations
+        // No implementation needed as getTotalPlayCount calculates dynamically
+    }
+
+    public void setSongPlayCounts(Map<String, Integer> playCounts) {
+        if (playCounts != null) {
+            songPlayCounts.clear();
+            songPlayCounts.putAll(playCounts);
+        }
     }
 
     @Override

@@ -6,10 +6,13 @@ import java.time.Duration;
 import java.time.Year;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
- * Service class containing 10 advanced exercises for mastering Java 21 Streams API,
+ * Service class containing 15 advanced exercises for mastering Java 21 Streams API,
  * lambda expressions, and method references.
  */
 public class MusicAnalyticsService {
@@ -238,7 +241,7 @@ public class MusicAnalyticsService {
                 .filter(album -> favoriteArtists.contains(album.getArtist()))
                 .flatMap(album -> album.getSongs().stream())
                 .filter(song -> !playedSongIds.contains(song.getId()))
-                .toList();
+                .collect(Collectors.toList());
         
         // Calculate a recommendation score for each song
         return allSongs.stream()
@@ -260,6 +263,333 @@ public class MusicAnalyticsService {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Exercise 11: Analyze song distribution by decade and genre.
+     * 
+     * Uses:
+     * - Map transformation with custom keys
+     * - Complex multi-level grouping
+     * - Custom record for return type
+     * - Method references and constructor references
+     */
+    public Map<Decade, Map<Genre, List<SongSummary>>> analyzeLibraryByDecadeAndGenre(List<Song> songs) {
+        return songs.stream()
+                .collect(Collectors.groupingBy(
+                        song -> new Decade(song.getReleaseYear().getValue()),
+                        Collectors.groupingBy(
+                                Song::getPrimaryGenre,
+                                Collectors.mapping(
+                                        song -> new SongSummary(
+                                                song.getTitle(),
+                                                String.join(", ", song.getArtists()),
+                                                song.getPopularity(),
+                                                song.getPlayCount()
+                                        ),
+                                        Collectors.toList()
+                                )
+                        )
+                ));
+    }
+
+    /**
+     * Exercise 12: Find collaboration patterns between artists.
+     * 
+     * Uses:
+     * - flatMap with complex transformation
+     * - Collectors.teeing for parallel aggregation
+     * - Custom data structure handling
+     * - Functional composition
+     */
+    public Map<ArtistPair, List<Song>> findArtistCollaborations(List<Song> songs) {
+        return songs.stream()
+                .filter(song -> song.getArtists().size() > 1)
+                .flatMap(song -> {
+                    List<String> artists = new ArrayList<>(song.getArtists());
+                    return IntStream.range(0, artists.size() - 1)
+                            .boxed()
+                            .flatMap(i -> IntStream.range(i + 1, artists.size())
+                                    .mapToObj(j -> Map.entry(
+                                            new ArtistPair(artists.get(i), artists.get(j)),
+                                            song
+                                    ))
+                            );
+                })
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
+    }
+
+    /**
+     * Exercise 13: Create personalized genre affinity scores for users.
+     * 
+     * Uses:
+     * - Complex weighted calculations
+     * - Collectors.toMap with merging function
+     * - Multi-step transformations
+     * - Optional handling and defaults
+     */
+    public Map<User, Map<Genre, Double>> calculateGenreAffinityScores(
+            List<User> users, 
+            List<Song> allSongs,
+            List<Playlist> allPlaylists) {
+        
+        // Build a map of song IDs to songs for quick lookup
+        Map<String, Song> songLookup = allSongs.stream()
+                .collect(Collectors.toMap(Song::getId, Function.identity()));
+        
+        // Build map of user IDs to their playlists
+        Map<String, List<Playlist>> userPlaylists = allPlaylists.stream()
+                .collect(Collectors.groupingBy(Playlist::getOwnerId));
+        
+        return users.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        user -> {
+                            // Calculate base scores from direct plays
+                            Map<Genre, Double> baseScores = user.getSongPlayCounts().entrySet().stream()
+                                    .filter(entry -> songLookup.containsKey(entry.getKey()))
+                                    .map(entry -> {
+                                        Song song = songLookup.get(entry.getKey());
+                                        int playCount = entry.getValue();
+                                        
+                                        // Primary genre gets full weight
+                                        Map<Genre, Double> scores = new HashMap<>();
+                                        scores.put(song.getPrimaryGenre(), playCount * 1.0);
+                                        
+                                        // Secondary genres get half weight
+                                        song.getSecondaryGenres().forEach(genre -> 
+                                            scores.put(genre, scores.getOrDefault(genre, 0.0) + playCount * 0.5)
+                                        );
+                                        
+                                        return scores;
+                                    })
+                                    .flatMap(map -> map.entrySet().stream())
+                                    .collect(Collectors.toMap(
+                                            Map.Entry::getKey,
+                                            Map.Entry::getValue,
+                                            Double::sum
+                                    ));
+                            
+                            // Add scores from favorite genres (explicit preferences)
+                            user.getFavoriteGenres().forEach(genre ->
+                                    baseScores.put(genre, baseScores.getOrDefault(genre, 0.0) + 20.0)
+                            );
+                            
+                            // Add scores from playlist curation
+                            Optional.ofNullable(userPlaylists.get(user.getId()))
+                                    .orElse(List.of())
+                                    .stream()
+                                    .flatMap(playlist -> playlist.getSongs().stream())
+                                    .collect(Collectors.groupingBy(
+                                            Song::getPrimaryGenre,
+                                            Collectors.counting()
+                                    ))
+                                    .forEach((genre, count) ->
+                                            baseScores.put(genre, baseScores.getOrDefault(genre, 0.0) + count * 0.5)
+                                    );
+                            
+                            // Normalize scores (0-100 scale)
+                            double maxScore = baseScores.values().stream()
+                                    .mapToDouble(Double::doubleValue)
+                                    .max()
+                                    .orElse(1.0);
+                            
+                            return baseScores.entrySet().stream()
+                                    .collect(Collectors.toMap(
+                                            Map.Entry::getKey,
+                                            entry -> Math.min(100.0, (entry.getValue() / maxScore) * 100.0)
+                                    ));
+                        }
+                ));
+    }
+
+    /**
+     * Exercise 14: Create dynamic playlist generator with advanced filtering.
+     * 
+     * Uses:
+     * - Stream pipeline conditionals
+     * - Function composition
+     * - Predicate factories and combinators
+     * - Complex sorting with multiple criteria
+     */
+    public List<Song> generateDynamicPlaylist(
+            List<Song> availableSongs,
+            Set<Genre> preferredGenres,
+            Set<String> preferredArtists,
+            Year earliestYear,
+            Year latestYear,
+            Duration targetDuration,
+            int varietyFactor) {
+        
+        // Predicate for genre matching with variety factor
+        Predicate<Song> genrePredicate = song -> {
+            if (preferredGenres == null || preferredGenres.isEmpty()) return true;
+            if (preferredGenres.contains(song.getPrimaryGenre())) return true;
+            return varietyFactor > 3 && song.getSecondaryGenres().stream()
+                    .anyMatch(preferredGenres::contains);
+        };
+        
+        // Predicate for artist matching with variety factor
+        Predicate<Song> artistPredicate = song -> {
+            if (preferredArtists == null || preferredArtists.isEmpty()) return true;
+            boolean hasMatch = song.getArtists().stream().anyMatch(preferredArtists::contains);
+            return hasMatch || varietyFactor > 7;
+        };
+        
+        // Predicate for year range
+        Predicate<Song> yearPredicate = song -> {
+            if (earliestYear == null && latestYear == null) return true;
+            if (earliestYear == null) return !song.getReleaseYear().isAfter(latestYear);
+            if (latestYear == null) return !song.getReleaseYear().isBefore(earliestYear);
+            return !song.getReleaseYear().isBefore(earliestYear) && 
+                   !song.getReleaseYear().isAfter(latestYear);
+        };
+        
+        // Combined filter
+        Predicate<Song> combinedFilter = genrePredicate.and(artistPredicate).and(yearPredicate);
+        
+        // Create comparator based on variety factor
+        Comparator<Song> comparator;
+        if (varietyFactor <= 3) {
+            // Low variety: strict match on preferred genres and popularity
+            comparator = Comparator.comparing( (Song song) -> preferredGenres.contains(song.getPrimaryGenre()) ? 0 : 1)
+                        .thenComparing(Comparator.comparing(Song::getPopularity).reversed());
+        } else if (varietyFactor <= 7) {
+            // Medium variety: balance genre match with popularity and recency
+            comparator = Comparator.comparing(Song::getPopularity)
+                        .thenComparing(Song::getReleaseYear).reversed();
+        } else {
+            // High variety: prioritize diversity in selection
+            Random random = new Random();
+            comparator = Comparator.comparing(s -> random.nextDouble());
+        }
+        
+        List<Song> candidateSongs = availableSongs.stream()
+                .filter(combinedFilter)
+                .sorted(comparator)
+                .collect(Collectors.toList());
+        
+        // Build playlist up to target duration
+        List<Song> playlist = new ArrayList<>();
+        Duration currentDuration = Duration.ZERO;
+        
+        for (Song song : candidateSongs) {
+            if (currentDuration.plus(song.getDuration()).compareTo(targetDuration) > 0 &&
+                !playlist.isEmpty()) {
+                break;
+            }
+            playlist.add(song);
+            currentDuration = currentDuration.plus(song.getDuration());
+        }
+        
+        return playlist;
+    }
+
+    /**
+     * Exercise 15: Analyze listening patterns and create track transition probabilities.
+     * 
+     * Uses:
+     * - Sequential stream processing with state
+     * - Complex statistical analysis
+     * - Custom collector implementation
+     * - Multi-level data transformation
+     */
+    public Map<Song, Map<Song, Double>> analyzeTrackTransitionProbabilities(List<User> users, Map<String, Song> songLookup) {
+        // First, collect all user listening sequences
+        List<List<Song>> listeningSequences = users.stream()
+                .map(User::getId)
+                .filter(userId -> {
+                    // Find a user by ID and check if they have a listening history
+                    Optional<User> user = users.stream()
+                            .filter(u -> u.getId().equals(userId))
+                            .findFirst();
+                    return user.isPresent() && user.get().getListeningHistory() != null 
+                           && !user.get().getListeningHistory().isEmpty();
+                })
+                .map(userId -> {
+                    // Get the user's listening history and convert song IDs to Song objects
+                    List<String> history = users.stream()
+                            .filter(u -> u.getId().equals(userId))
+                            .findFirst()
+                            .map(User::getListeningHistory)
+                            .orElse(List.of());
+                            
+                    return history.stream()
+                            .map(songLookup::get)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
+                })
+                .filter(sequence -> sequence.size() >= 2)
+                .collect(Collectors.toList());
+        
+        // Create map to count transitions
+        Map<Song, Map<Song, Integer>> transitionCounts = new HashMap<>();
+        
+        // Process each sequence to count transitions
+        listeningSequences.forEach(sequence -> {
+            for (int i = 0; i < sequence.size() - 1; i++) {
+                Song current = sequence.get(i);
+                Song next = sequence.get(i + 1);
+                
+                transitionCounts.computeIfAbsent(current, k -> new HashMap<>())
+                               .merge(next, 1, Integer::sum);
+            }
+        });
+        
+        // Convert counts to probabilities
+        return transitionCounts.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> {
+                            Map<Song, Integer> nextSongCounts = entry.getValue();
+                            int total = nextSongCounts.values().stream()
+                                    .mapToInt(Integer::intValue)
+                                    .sum();
+                            
+                            return nextSongCounts.entrySet().stream()
+                                    .collect(Collectors.toMap(
+                                            Map.Entry::getKey,
+                                            e -> (double) e.getValue() / total
+                                    ));
+                        }
+                ));
+    }
+
+    /**
+     * Record representing a decade for grouping songs
+     */
+    public record Decade(int startYear) {
+        public Decade {
+            // Normalize to decade start year (e.g., 1980, 1990, etc.)
+            startYear = (startYear / 10) * 10;
+        }
+        
+        @Override
+        public String toString() {
+            return startYear + "s";
+        }
+    }
+    
+    /**
+     * Record representing a pair of collaborating artists
+     */
+    public record ArtistPair(String artist1, String artist2) {
+        public ArtistPair {
+            // Ensure consistent ordering for proper equals/hashCode
+            if (artist1.compareTo(artist2) > 0) {
+                String temp = artist1;
+                artist1 = artist2;
+                artist2 = temp;
+            }
+        }
+    }
+    
+    /**
+     * Record representing a summary of song information
+     */
+    public record SongSummary(String title, String artists, double popularity, int playCount) {}
 
     /**
      * DTO for Album summary information

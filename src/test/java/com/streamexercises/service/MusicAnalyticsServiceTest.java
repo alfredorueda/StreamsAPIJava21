@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test class for MusicAnalyticsService that contains 10 tests for advanced Stream API exercises.
+ * Test class for MusicAnalyticsService that contains 15 tests for advanced Stream API exercises.
  * Each test includes comprehensive data setup and assertions to validate the expected results.
  */
 public class MusicAnalyticsServiceTest {
@@ -393,6 +393,230 @@ public class MusicAnalyticsServiceTest {
             double score2 = calculateRecommendationScore(secondSong, userFavoriteGenres, favoriteArtists);
             
             assertTrue(score1 >= score2, "Recommendations should be ordered by relevance score");
+        }
+    }
+
+    @Test
+    @DisplayName("Exercise 11: Analyze library by decade and genre")
+    void testAnalyzeLibraryByDecadeAndGenre() {
+        // Act
+        Map<MusicAnalyticsService.Decade, Map<Genre, List<MusicAnalyticsService.SongSummary>>> result = 
+            service.analyzeLibraryByDecadeAndGenre(allSongs);
+        
+        // Assert
+        assertNotNull(result);
+        assertFalse(result.isEmpty(), "Should group songs into at least one decade");
+        
+        // Check that a decade has song data
+        MusicAnalyticsService.Decade someDecade = result.keySet().iterator().next();
+        assertNotNull(someDecade);
+        
+        // Verify decade formatting
+        assertTrue(someDecade.toString().endsWith("s"), 
+                "Decade should be formatted with 's' at the end, e.g. '2020s'");
+        
+        // Verify the structure for one decade
+        Map<Genre, List<MusicAnalyticsService.SongSummary>> genreMap = result.get(someDecade);
+        assertNotNull(genreMap);
+        assertFalse(genreMap.isEmpty(), "Should have at least one genre per decade");
+        
+        // Verify that a genre has songs
+        Genre someGenre = genreMap.keySet().iterator().next();
+        List<MusicAnalyticsService.SongSummary> songSummaries = genreMap.get(someGenre);
+        assertNotNull(songSummaries);
+        assertFalse(songSummaries.isEmpty(), "Should have at least one song per genre");
+        
+        // Verify SongSummary record structure
+        MusicAnalyticsService.SongSummary summary = songSummaries.get(0);
+        assertNotNull(summary.title());
+        assertNotNull(summary.artists());
+        assertTrue(summary.popularity() >= 0 && summary.popularity() <= 100);
+        assertTrue(summary.playCount() >= 0);
+    }
+
+    @Test
+    @DisplayName("Exercise 12: Find artist collaborations")
+    void testFindArtistCollaborations() {
+        // Act
+        Map<MusicAnalyticsService.ArtistPair, List<Song>> result = service.findArtistCollaborations(allSongs);
+        
+        // Assert
+        assertNotNull(result);
+        
+        // Check if collaborations were found (there might not be any in the test data)
+        if (!result.isEmpty()) {
+            // Get a collaboration pair
+            Map.Entry<MusicAnalyticsService.ArtistPair, List<Song>> entry = 
+                result.entrySet().iterator().next();
+            
+            MusicAnalyticsService.ArtistPair pair = entry.getKey();
+            assertNotNull(pair.artist1());
+            assertNotNull(pair.artist2());
+            assertNotEquals(pair.artist1(), pair.artist2(), 
+                    "Artists in a pair should be different");
+            
+            // Verify that artist1 is lexicographically before artist2 (canonicalization)
+            assertTrue(pair.artist1().compareTo(pair.artist2()) <= 0,
+                    "ArtistPair should ensure consistent ordering (artist1 <= artist2)");
+            
+            // Verify songs list
+            List<Song> collaborationSongs = entry.getValue();
+            assertFalse(collaborationSongs.isEmpty());
+            
+            // Verify each song actually contains both artists
+            Song song = collaborationSongs.get(0);
+            assertTrue(song.getArtists().contains(pair.artist1()));
+            assertTrue(song.getArtists().contains(pair.artist2()));
+        }
+    }
+
+    @Test
+    @DisplayName("Exercise 13: Calculate genre affinity scores")
+    void testCalculateGenreAffinityScores() {
+        // Act
+        Map<User, Map<Genre, Double>> result = 
+            service.calculateGenreAffinityScores(allUsers, allSongs, allPlaylists);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(allUsers.size(), result.size(), "Should have scores for all users");
+        
+        // Check a user's scores
+        User someUser = allUsers.get(0);
+        Map<Genre, Double> userScores = result.get(someUser);
+        assertNotNull(userScores);
+        
+        // Verify scores are properly normalized
+        double maxScore = userScores.values().stream()
+                .mapToDouble(Double::doubleValue)
+                .max()
+                .orElse(0.0);
+                
+        assertTrue(maxScore <= 100.0, "Maximum score should not exceed 100");
+        
+        // Verify that favorite genres have higher scores
+        if (!someUser.getFavoriteGenres().isEmpty()) {
+            Genre favoriteGenre = someUser.getFavoriteGenres().iterator().next();
+            
+            if (userScores.containsKey(favoriteGenre)) {
+                double favoriteGenreScore = userScores.get(favoriteGenre);
+                
+                // The favorite genre's score should be relatively high
+                // This is a heuristic check, might need adjustment based on implementation
+                assertTrue(favoriteGenreScore >= 20.0, 
+                        "Favorite genres should have higher affinity scores");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Exercise 14: Generate dynamic playlist")
+    void testGenerateDynamicPlaylist() {
+        // Arrange
+        Set<Genre> preferredGenres = Set.of(Genre.POP, Genre.ELECTRONIC);
+        Set<String> preferredArtists = new HashSet<>();
+        if (!allSongs.isEmpty()) {
+            preferredArtists.add(allSongs.get(0).getArtists().iterator().next());
+        }
+        Year earliestYear = Year.of(2000);
+        Year latestYear = Year.of(2023);
+        Duration targetDuration = Duration.ofMinutes(20);
+        int varietyFactor = 5;
+        
+        // Act
+        List<Song> result = service.generateDynamicPlaylist(
+            allSongs,
+            preferredGenres, 
+            preferredArtists,
+            earliestYear,
+            latestYear,
+            targetDuration,
+            varietyFactor
+        );
+        
+        // Assert
+        assertNotNull(result);
+        
+        if (!result.isEmpty()) {
+            // Check that playlist doesn't exceed target duration by too much
+            Duration totalDuration = result.stream()
+                    .map(Song::getDuration)
+                    .reduce(Duration.ZERO, Duration::plus);
+                    
+            assertTrue(totalDuration.compareTo(targetDuration) <= 0 || 
+                      result.size() == 1, 
+                    "Playlist should not exceed target duration unless it contains only one song");
+            
+            // Check year range constraints
+            assertTrue(result.stream()
+                    .allMatch(song -> !song.getReleaseYear().isBefore(earliestYear) && 
+                                      !song.getReleaseYear().isAfter(latestYear)),
+                    "All songs should be within the specified year range");
+                    
+            // With variety factor 5, should prefer preferred genres but not exclusively
+            long genreMatchCount = result.stream()
+                    .filter(song -> preferredGenres.contains(song.getPrimaryGenre()))
+                    .count();
+                    
+            // At medium variety, at least some songs should match preferred genres
+            if (preferredGenres != null && !preferredGenres.isEmpty() && result.size() > 1) {
+                assertTrue(genreMatchCount > 0, 
+                        "At least some songs should match preferred genres at medium variety");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Exercise 15: Analyze track transition probabilities")
+    void testAnalyzeTrackTransitionProbabilities() {
+        // Setup users with listening history
+        allUsers.forEach(user -> {
+            // Create a simple listening sequence for testing
+            if (allSongs.size() >= 3) {
+                List<String> history = new ArrayList<>();
+                history.add(allSongs.get(0).getId());
+                history.add(allSongs.get(1).getId());
+                history.add(allSongs.get(0).getId());
+                history.add(allSongs.get(2).getId());
+                user.setListeningHistory(history);
+            }
+        });
+        
+        // Act
+        Map<Song, Map<Song, Double>> result = 
+            service.analyzeTrackTransitionProbabilities(allUsers, allSongs.stream().collect(Collectors.toMap(Song::getId, song -> song)));
+        
+        // Assert
+        assertNotNull(result);
+        
+        if (!result.isEmpty() && allSongs.size() >= 3) {
+            // Get transition probabilities for the first song
+            Song firstSong = allSongs.get(0);
+            Map<Song, Double> transitions = result.get(firstSong);
+            assertNotNull(transitions);
+            
+            // Verify probabilities sum to approximately 1.0
+            double sum = transitions.values().stream()
+                    .mapToDouble(Double::doubleValue)
+                    .sum();
+            assertEquals(1.0, sum, 0.001, 
+                    "Transition probabilities for a song should sum to 1.0");
+            
+            // For our test data, first song transitions to songs[1] and songs[2]
+            Song secondSong = allSongs.get(1);
+            Song thirdSong = allSongs.get(2);
+            
+            if (transitions.containsKey(secondSong) && transitions.containsKey(thirdSong)) {
+                double probToSecond = transitions.get(secondSong);
+                double probToThird = transitions.get(thirdSong);
+                
+                assertTrue(probToSecond > 0, "There should be a positive probability to transition to second song");
+                assertTrue(probToThird > 0, "There should be a positive probability to transition to third song");
+                
+                // Based on our mock data (0→1, 0→2), these should be equal
+                assertEquals(probToSecond, probToThird, 0.001, 
+                        "With equal transitions, probabilities should be equal");
+            }
         }
     }
 
