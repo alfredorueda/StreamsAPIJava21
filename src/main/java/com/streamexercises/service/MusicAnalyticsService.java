@@ -105,10 +105,18 @@ public class MusicAnalyticsService {
      * Uses flatMap to process all songs across playlists and reduce to combine durations
      */
     public Duration calculateTotalPlaylistsDuration(List<Playlist> playlists) {
+
+        // using DDD rich domain model approach
         return playlists.stream()
+                .map(Playlist::getTotalDuration)
+                .reduce(Duration.ZERO, Duration::plus);
+
+        /*
+         return playlists.stream()
                 .flatMap(playlist -> playlist.getSongs().stream())
                 .map(Song::getDuration)
                 .reduce(Duration.ZERO, Duration::plus);
+         */
     }
 
     /**
